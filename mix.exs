@@ -4,7 +4,7 @@ defmodule Persist.MixProject do
   def project do
     [
       app: :persist,
-      version: "0.1.0-pre2",
+      version: "0.1.2-rc",
       description: "Simplest persistence layer for in-memory state storage",
       elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
@@ -27,8 +27,9 @@ defmodule Persist.MixProject do
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},
-      {:uptight, "~> 0.2.0-pre"},
+      {:uptight, "~> 0.2.4-rc"},
       {:dyn_hacks, "~> 0.1.0"},
+      {:propcheck, "~> 1.4.1", only: [:test, :dev], runtime: true}
     ]
   end
 
@@ -43,6 +44,4 @@ defmodule Persist.MixProject do
       maintainers: ["doma.dev"]
     ]
   end
-
-
 end

@@ -11,8 +11,43 @@ defmodule Persist do
   Saves state into file system and returns the state it saved or crashes.
 
   NB! No functions allowed.
+
+  Or are they...
+
+  iex(1)> (:erlang.term_to_binary(fn -> :ok end) |> :erlang.binary_to_term()).()
+  :ok
+  iex(2)> x = :enclosed
+  :enclosed
+  iex(3)> :io.format('~p~n', [:erlang.term_to_binary(fn -> x end)])
+  <<131,112,0,0,0,157,0,76,80,224,147,120,219,253,166,238,44,96,86,8,53,142,187,
+    0,0,0,45,0,0,0,1,100,0,8,101,114,108,95,101,118,97,108,97,45,98,2,98,135,4,
+    88,100,0,13,110,111,110,111,100,101,64,110,111,104,111,115,116,0,0,0,106,0,0,
+    0,0,0,0,0,0,104,4,116,0,0,0,1,100,0,3,95,64,48,100,0,8,101,110,99,108,111,
+    115,101,100,100,0,4,110,111,110,101,100,0,4,110,111,110,101,108,0,0,0,1,104,
+    5,100,0,6,99,108,97,117,115,101,97,9,106,106,108,0,0,0,1,104,3,100,0,3,118,
+    97,114,97,9,100,0,3,95,64,48,106,106>>
+  :ok
+
+
+  In another shell:
+
+  iex(1)> x = <<131,112,0,0,0,157,0,76,80,224,147,120,219,253,166,238,44,96,86,8,53,142,187,
+  ...(1)>   0,0,0,45,0,0,0,1,100,0,8,101,114,108,95,101,118,97,108,97,45,98,2,98,135,4,
+  ...(1)>   88,100,0,13,110,111,110,111,100,101,64,110,111,104,111,115,116,0,0,0,106,0,0,
+  ...(1)>   0,0,0,0,0,0,104,4,116,0,0,0,1,100,0,3,95,64,48,100,0,8,101,110,99,108,111,
+  ...(1)>   115,101,100,100,0,4,110,111,110,101,100,0,4,110,111,110,101,108,0,0,0,1,104,
+  ...(1)>   5,100,0,6,99,108,97,117,115,101,97,9,106,106,108,0,0,0,1,104,3,100,0,3,118,
+  ...(1)>   97,114,97,9,100,0,3,95,64,48,106,106>>
+  iex(2)> :erlang.binary_to_term(x).()
+  :enclosed
+
+  Rather epic. Thank you, Joe!
   """
-  @spec save_state(any, atom, atom | nil) :: any
+  @spec save_state(
+          any(),
+          atom() | {atom(), Uptight.Text.t() | atom() | pos_integer()},
+          atom() | nil
+        ) :: any()
   def save_state(state, module, host \\ nil) do
     {_, new_tip_path, vs} = get_values_and_new_tip(module, host)
     :ok = File.touch(new_tip_path)
@@ -26,9 +61,11 @@ defmodule Persist do
   end
 
   defp discard_obsolete_snapshots(vs, module, host) do
-    if length(vs) > @generations do
+    generations = Application.get_env(:persist, :generations) || @generations
+
+    if length(vs) > generations do
       vs
-      |> Enum.take(length(vs) - @generations)
+      |> Enum.take(length(vs) - generations)
       |> Enum.map(&File.rm(snapshot_path(module, host, &1)))
     end
   end
@@ -98,7 +135,21 @@ defmodule Persist do
     Path.join([key_path(module, host), snapshot])
   end
 
-  defp key_path(module, host), do: [db_path(host), module |> Atom.to_string()] |> Path.join()
+  defp key_path(module, host) when is_atom(module) do
+    [db_path(host), module |> Atom.to_string()] |> Path.join()
+  end
+
+  defp key_path({module, %Uptight.Text{text: bucket_name}}, host) do
+    bucket_path(module, bucket_name, host)
+  end
+
+  defp key_path({module, bucket_id}, host) when is_atom(bucket_id) or is_number(bucket_id) do
+    bucket_path(module, "#{bucket_id}", host)
+  end
+
+  defp bucket_path(module, bucket, host) do
+    [db_path(host), module |> Atom.to_string(), bucket] |> Path.join()
+  end
 
   @spec get_key_path(atom, atom | nil) :: Uptight.Text.t()
   def get_key_path(module, host \\ nil),
