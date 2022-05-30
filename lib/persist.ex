@@ -4,6 +4,7 @@ defmodule Persist do
   """
 
   import DynHacks
+  alias Uptight.Text
 
   @generations 3
 
@@ -48,7 +49,11 @@ defmodule Persist do
           atom() | {atom(), Uptight.Text.t() | atom() | pos_integer()},
           atom() | nil
         ) :: any()
-  def save_state(state, module, host \\ nil) do
+  def save_state(
+        state,
+        module,
+        host \\ nil
+      ) do
     {_, new_tip_path, vs} = get_values_and_new_tip(module, host)
     :ok = File.touch(new_tip_path)
     :ok = File.write(new_tip_path, :erlang.term_to_binary(state))
@@ -70,8 +75,15 @@ defmodule Persist do
     end
   end
 
-  @spec load_state(atom, atom | nil) :: any
-  def load_state(module, host \\ nil) do
+  @spec load_state(
+          atom() | {atom(), Uptight.Text.t() | atom() | pos_integer()},
+          atom() | nil
+        ) ::
+          any()
+  def load_state(
+        module,
+        host \\ nil
+      ) do
     {_, _, vs} = get_values_and_new_tip(module, host)
 
     load_latest_state(
@@ -136,7 +148,7 @@ defmodule Persist do
   end
 
   defp key_path(module, host) when is_atom(module) do
-    [db_path(host), module |> Atom.to_string()] |> Path.join()
+    [db_path(host), module |> Atom.to_string() |> pathsafe_str()] |> Path.join()
   end
 
   defp key_path({module, %Uptight.Text{text: bucket_name}}, host) do
@@ -148,7 +160,22 @@ defmodule Persist do
   end
 
   defp bucket_path(module, bucket, host) do
-    [db_path(host), module |> Atom.to_string(), bucket] |> Path.join()
+    [db_path(host), module |> Atom.to_string() |> pathsafe_str(), bucket |> pathsafe_str()]
+    |> Path.join()
+  end
+
+  def pathsafe(%Text{text: x}) do
+    pathsafe_str(x) |> Text.new!()
+  end
+
+  def pathsafe_str(x_str) do
+    for <<x <- x_str>>, String.match?(<<x>>, pathsafe_regex()), into: "" do
+      <<x>>
+    end
+  end
+
+  def pathsafe_regex() do
+    ~r/^[[:lower:]]|[[:upper:]]|[[:digit:]]|-|_$/
   end
 
   @spec get_key_path(atom, atom | nil) :: Uptight.Text.t()

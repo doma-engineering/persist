@@ -4,7 +4,7 @@ defmodule Persist.MixProject do
   def project do
     [
       app: :persist,
-      version: "0.1.2-rc",
+      version: "0.2.0-rc",
       description: "Simplest persistence layer for in-memory state storage",
       elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
