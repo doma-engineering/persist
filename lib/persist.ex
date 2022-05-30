@@ -175,7 +175,7 @@ defmodule Persist do
   end
 
   def pathsafe_regex() do
-    ~r/^[[:lower:]]|[[:upper:]]|[[:digit:]]|-|_$/
+    ~r/^[[:lower:]]|[[:upper:]]|[[:digit:]]|-|_|@|\.$/
   end
 
   @spec get_key_path(atom, atom | nil) :: Uptight.Text.t()
