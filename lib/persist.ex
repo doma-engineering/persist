@@ -164,16 +164,19 @@ defmodule Persist do
     |> Path.join()
   end
 
+  @spec pathsafe(Uptight.Text.t()) :: Uptight.Text.t()
   def pathsafe(%Text{text: x}) do
     pathsafe_str(x) |> Text.new!()
   end
 
+  @spec pathsafe_str(bitstring) :: bitstring
   def pathsafe_str(x_str) do
     for <<x <- x_str>>, String.match?(<<x>>, pathsafe_regex()), into: "" do
       <<x>>
     end
   end
 
+  @spec pathsafe_regex :: Regex.t()
   def pathsafe_regex() do
     ~r/^[[:lower:]]|[[:upper:]]|[[:digit:]]|-|_|@|\.$/
   end
